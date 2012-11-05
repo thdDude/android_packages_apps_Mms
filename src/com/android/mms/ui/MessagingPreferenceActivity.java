@@ -119,6 +119,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     // Blacklist
     public static final String BLACKLIST                 = "pref_blacklist";
 
+    private static final String DIRECT_CALL_PREF = "direct_call_pref";
+
     // Menu entries
     private static final int MENU_RESTORE_DEFAULTS    = 1;
 
@@ -158,6 +160,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity
 
     // Blacklist
     private PreferenceScreen mBlacklist;
+
+    private CheckBoxPreference mDirectCall;
 
     @Override
     protected void onCreate(Bundle icicle) {
@@ -202,6 +206,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         mMmsReadReportPref = findPreference("pref_key_mms_read_reports");
         mMmsLimitPref = findPreference("pref_key_mms_delete_limit");
         mClearHistoryPref = findPreference("pref_key_mms_clear_history");
+    mDirectCall = (CheckBoxPreference) findPreference("direct_call_pref");
         mEnableNotificationsPref = (CheckBoxPreference) findPreference(NOTIFICATION_ENABLED);
         mEnablePrivacyModePref = (CheckBoxPreference) findPreference(PRIVACY_MODE_ENABLED);
         mVibratePref = (CheckBoxPreference) findPreference(NOTIFICATION_VIBRATE);
@@ -675,6 +680,27 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         boolean qmDarkThemeEnabled =
             prefs.getBoolean(MessagingPreferenceActivity.QM_DARK_THEME_ENABLED, false);
         return qmDarkThemeEnabled;
+    }
+
+    public static boolean getGroupMMSEnabled(Context context) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        boolean groupMMSEnabled = prefs.getBoolean(MessagingPreferenceActivity.GROUP_MMS_ENABLED, false);
+        return groupMMSEnabled;
+    }
+
+    public static void enableGroupMMS(boolean enabled, Context context) {
+        // Store the value of GroupMMS in SharedPreferences
+        SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(context).edit();
+
+        editor.putBoolean(MessagingPreferenceActivity.GROUP_MMS_ENABLED, enabled);
+
+        editor.apply();
+    }
+
+    public static boolean getDirectCallEnabled(Context context) {
+    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+    boolean directCallEnabled = prefs.getBoolean(MessagingPreferenceActivity.DIRECT_CALL_PREF,false);
+    return directCallEnabled;
     }
 
     private void registerListeners() {
