@@ -37,8 +37,6 @@
     <string name="pref_title_mms_notification_vibrate_custom">Προσαρμοσμένο μοτίβο δόνησης</string>
     <string name="pref_summary_mms_notification_vibrate_call">Να επιτρέπεται η δόνηση κατά τη διάρκεια μιας κλήσης</string>
     <string name="pref_quickmessage">Γρήγορη απάντηση</string>
-    <string name="pref_dark_theme_title">Χρήση σκοτεινού θέματος</string>
-    <string name="pref_dark_theme_summary">Αν δεν επιλεχθέι, το προεπιλεγμένο \'ανοιχτόχρωμο\' θέμα θα χρησιμοποιηθεί</string>
     <string name="pref_quickmessage_title">Εμφάνιση αναδυόμενου παραθύρου</string>
     <string name="pref_quickmessage_summary">Εμφάνιση αναδυόμενου μηνύματος για τα εισερχόμενα SMS</string>
     <string name="pref_wake_unlock_title">Ξύπνημα και ξεκλείδωμα</string>

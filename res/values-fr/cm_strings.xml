@@ -37,8 +37,6 @@
     <string name="pref_title_mms_notification_vibrate_call">Vibration lors d\'un appel</string>
     <string name="pref_summary_mms_notification_vibrate_call">Autoriser la vibration pendant un appel</string>
     <string name="pref_quickmessage">Réponse rapide</string>
-    <string name="pref_dark_theme_title">Utiliser le thème noir</string>
-    <string name="pref_dark_theme_summary">Si non sélectionné, le thème \'clair\' sera utilisé par défaut</string>
     <string name="pref_quickmessage_title">Afficher le pop-up</string>
     <string name="pref_quickmessage_summary">Afficher le pop-up pour les SMS entrants</string>
     <string name="pref_wake_unlock_title">Réveiller et déverrouiller</string>
