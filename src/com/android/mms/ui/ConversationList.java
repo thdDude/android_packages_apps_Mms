@@ -173,6 +173,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     public void onPause() {
         super.onPause();
 
+        // Don't listen for changes while we're paused.
+        mListAdapter.setOnContentChangedListener(null);
+
         // Remember where the list is scrolled to so we can restore the scroll position
         // when we come back to this activity and *after* we complete querying for the
         // conversations.
@@ -181,6 +184,14 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         View firstChild = listView.getChildAt(0);
         mSavedFirstItemOffset = (firstChild == null) ? 0 : firstChild.getTop();
         mIsRunning = false;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        mIsRunning = true;
+        mListAdapter.setOnContentChangedListener(mContentChangedListener);
     }
 
     private void setupActionBar() {
@@ -215,9 +226,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
     /**
      * Checks to see if the number of MMS and SMS messages are under the limits for the
-     * recycler. If so, it will automatically turn on the recycler setting. If not, it
-     * will prompt the user with a message and point them to the setting to manually
-     * turn on the recycler.
+     * recycler. If not so, it will prompt the user with a message and point them to
+     * the setting to manually turn on the recycler.
      */
     public synchronized void runOneTimeStorageLimitCheckForLegacyMessages() {
         if (Recycler.isAutoDeleteEnabled(this)) {
@@ -243,17 +253,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                             startActivity(intent);
                         }
                     }, 2000);
-                } else {
-                    if (DEBUG) Log.v(TAG, "checkForThreadsOverLimit silently turning on recycler");
-                    // No threads were over the limit. Turn on the recycler by default.
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            SharedPreferences.Editor editor = mPrefs.edit();
-                            editor.putBoolean(MessagingPreferenceActivity.AUTO_DELETE, true);
-                            editor.apply();
-                        }
-                    });
                 }
                 // Remember that we don't have to do the check anymore when starting MMS.
                 runOnUiThread(new Runnable() {
@@ -312,12 +311,6 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         if (!Conversation.loadingThreads()) {
             Contact.invalidateCache();
         }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        mIsRunning = true;
     }
 
     @Override

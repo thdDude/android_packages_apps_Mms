@@ -13,8 +13,11 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.sqlite.SqliteWrapper;
+import android.database.sqlite.SQLiteFullException;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.provider.BaseColumns;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
@@ -30,9 +33,14 @@ import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
 import com.android.mms.R;
 import com.android.mms.transaction.MessagingNotification;
+import com.android.mms.transaction.MmsMessageSender;
 import com.android.mms.ui.ComposeMessageActivity;
 import com.android.mms.ui.MessageUtils;
+import com.android.mms.util.AddressUtils;
 import com.android.mms.util.DraftCache;
+
+import com.google.android.mms.pdu.PduHeaders;
+import android.widget.Toast;
 
 /**
  * An interface for finding information about conversations and/or creating new ones.
@@ -96,6 +104,8 @@ public class Conversation {
     private static Object sDeletingThreadsLock = new Object();
     private boolean mMarkAsReadBlocked;
     private boolean mMarkAsReadWaiting;
+
+    private static Handler sToastHandler = new Handler();
 
     private Conversation(Context context) {
         mContext = context;
@@ -297,6 +307,42 @@ public class Conversation {
         }
     }
 
+    private void sendReadReport(final Context context,
+            final long threadId,
+            final int status) {
+        String selection = Mms.MESSAGE_TYPE + " = " + PduHeaders.MESSAGE_TYPE_RETRIEVE_CONF
+            + " AND " + Mms.READ + " = 0"
+            + " AND " + Mms.READ_REPORT + " = " + PduHeaders.VALUE_YES;
+
+        if (threadId != -1) {
+            selection = selection + " AND " + Mms.THREAD_ID + " = " + threadId;
+        }
+
+        final Cursor c = SqliteWrapper.query(context, context.getContentResolver(),
+                        Mms.Inbox.CONTENT_URI, new String[] {Mms._ID, Mms.MESSAGE_ID},
+                        selection, null, null);
+
+        try {
+            if (c == null || c.getCount() == 0) {
+                return;
+            }
+
+            while (c.moveToNext()) {
+                Uri uri = ContentUris.withAppendedId(Mms.CONTENT_URI, c.getLong(0));
+                if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                    LogTag.debug("sendReadReport: uri = " + uri);
+                }
+                MmsMessageSender.sendReadRec(context, AddressUtils.getFrom(context, uri),
+                                             c.getString(1), status);
+            }
+        } finally {
+            if (c != null) {
+                c.close();
+            }
+        }
+    }
+
+
     /**
      * Marks all messages in this conversation as read and updates
      * relevant notifications.  This method returns immediately;
@@ -347,10 +393,17 @@ public class Conversation {
                     }
 
                     if (needUpdate) {
+                        sendReadReport(mContext, mThreadId, PduHeaders.READ_STATUS_READ);
                         LogTag.debug("markAsRead: update read/seen for thread uri: " +
                                 threadUri);
-                        mContext.getContentResolver().update(threadUri, sReadContentValues,
-                                UNREAD_SELECTION, null);
+                        try {
+                            mContext.getContentResolver().update(threadUri,
+                                    sReadContentValues, UNREAD_SELECTION, null);
+                        } catch (SQLiteFullException e) {
+                            Log.e(TAG, "Database is full", e);
+                            showStorageFullToast(mContext);
+                            return null;
+                        }
                     }
                     setHasUnreadMessages(false);
                 }
@@ -1113,10 +1166,23 @@ public class Conversation {
         ContentValues values = new ContentValues(1);
         values.put("seen", 1);
 
-        resolver.update(Sms.Inbox.CONTENT_URI,
-                values,
-                "seen=0",
-                null);
+        try {
+            resolver.update(Sms.Inbox.CONTENT_URI, values, "seen=0", null);
+        } catch (SQLiteFullException e) {
+            Log.e(TAG, "Database is full", e);
+            showStorageFullToast(context);
+        }
+    }
+
+    private static void showStorageFullToast(final Context context) {
+        sToastHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                final CharSequence text = context.getString(R.string.storage_is_full);
+                final int duration = Toast.LENGTH_SHORT;
+                Toast.makeText(context, text, duration).show();
+            }
+        });
     }
 
     private static void blockingMarkAllMmsMessagesAsSeen(final Context context) {
@@ -1148,10 +1214,12 @@ public class Conversation {
         ContentValues values = new ContentValues(1);
         values.put("seen", 1);
 
-        resolver.update(Mms.Inbox.CONTENT_URI,
-                values,
-                "seen=0",
-                null);
+        try {
+            resolver.update(Mms.Inbox.CONTENT_URI, values, "seen=0", null);
+        } catch (SQLiteFullException e) {
+            Log.e(TAG, "Database is full", e);
+            showStorageFullToast(context);
+        }
 
     }
 

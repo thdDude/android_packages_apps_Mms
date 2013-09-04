@@ -40,8 +40,6 @@
     <string name="gestures_already_present">Let op: een soortgelijk gebaar wordt al gebruikt</string>
     <string name="pref_title_mms_notification_vibrate_pattern">Trilpatroon</string>
     <string name="pref_summary_mms_notification_vibrate_pattern">Trilpatroon wijzigen</string>
-    <string name="pref_title_mms_notification_vibrate_call">Trillen tijdens bellen</string>
-    <string name="pref_summary_mms_notification_vibrate_call">Trillen tijdens het bellen toestaan</string>
     <string name="pref_title_mms_notification_vibrate_custom">Aangepast trilpatroon</string>
     <string name="pref_text_mms_notification_vibrate_custom">Indeling uit/aan in miliseconden: uit, aan, uit, aan, enz.</string>
     <string name="pref_extra_settings">Meer\u2026</string>
@@ -93,4 +91,19 @@
     <string name="pref_summary_enable_softbank_encoding">SoftBank-codering voor Emoji\'s gebruiken</string>
     <string name="label_mms_push">Mms-push</string>
     <string name="desc_mms_push">Mms-berichten naar het netwerk sturen vanuit Postvak UIT</string>
+    <string name="blacklist_title">Zwarte lijst</string>
+    <string name="blacklist_summary_disabled">Uitgeschakeld</string>
+    <string name="blacklist_summary">Inkomende berichten van telefoonnummers op de zwarte lijst worden geblokkeerd</string>
+    <string name="blacklist_notification">Bericht van %s geblokkeerd</string>
+    <string name="blacklist_notification_private_number">Bericht van afgeschermd nummer geblokkeerd</string>
+    <string name="blacklist_notification_list_private">Afgeschermd</string>
+    <string name="blacklist_notification_unknown_number">Bericht van onbekend nummer %s geblokkeerd</string>
+    <string name="blacklist_notification_multiple"><xliff:g id="count">%d</xliff:g> berichten geblokkeerd</string>
+    <string name="unblock_number">Deblokkeren</string>
+    <string name="add_to_blacklist">Toevoegen aan zwarte lijst</string>
+    <string name="add_to_blacklist_message">Berichten van %s worden geblokkeerd</string>
+    <string name="alert_dialog_yes">Ja</string>
+    <string name="alert_dialog_no">Nee</string>
+    <string name="storage_is_full">De berichtendatabase is vol. Verwijder enkele gesprekken.</string>
+    <string name="menu_resend">Opnieuw verzenden</string>
 </resources>

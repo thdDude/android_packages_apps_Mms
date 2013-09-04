@@ -212,6 +212,9 @@
                 <action android:name="android.intent.action.CONTENT_CHANGED" />
             </intent-filter>
             <intent-filter>
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
+            </intent-filter>
+            <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
@@ -253,6 +256,7 @@
         <receiver android:name=".transaction.SmsReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="com.android.mms.action.REMOVE_BLACKLIST" />
             </intent-filter>
             <intent-filter>
                 <action android:name="com.android.mms.transaction.MESSAGE_SENT" />
@@ -318,10 +322,10 @@
         </provider>
 
         <service android:name=".ui.NoConfirmationSendService"
-                 android:permission="android.permission.SEND_SMS_NO_CONFIRMATION"
+                 android:permission="android.permission.SEND_RESPOND_VIA_MESSAGE"
                  android:exported="true" >
             <intent-filter>
-                <action android:name="com.android.mms.intent.action.SENDTO_NO_CONFIRMATION" />
+                <action android:name="android.intent.action.RESPOND_VIA_MESSAGE" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:scheme="sms" />
                 <data android:scheme="smsto" />

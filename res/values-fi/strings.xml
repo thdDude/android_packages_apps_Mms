@@ -342,7 +342,6 @@
     <string name="notification_separator" msgid="2334673105226536422">"  "</string>
     <string name="enumeration_comma" msgid="213598026698964628">", "</string>
     <string name="message_timestamp_format" msgid="4188999027493614617">"<xliff:g id="STRING_0">%1$s</xliff:g> - <xliff:g id="STRING_1">%2$s</xliff:g>"</string>
-
     <string name="prefs_templates_settings">Viestipohjat</string>
     <string name="pref_title_templates_manage">Pohjat</string>
     <string name="pref_summary_templates_manage">Hallitse viestipohjia</string>
@@ -394,5 +393,4 @@
     <string name="type_to_reply_text_enter_to_send">Kirjoita vastataksesi</string>
     <string name="toast_sending_message">Lähetetään</string>
     <string name="qm_quick_reply">Vastaa</string>
-
 </resources>

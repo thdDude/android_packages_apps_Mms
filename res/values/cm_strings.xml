@@ -51,10 +51,6 @@
     <string name="pref_title_mms_notification_vibrate_custom">Custom vibrate pattern</string>
     <string name="pref_text_mms_notification_vibrate_custom">Format off/on in milliseconds: off, on, off, on\u2026</string>
 
-    <!-- Vibrate on call -->
-    <string name="pref_title_mms_notification_vibrate_call">Vibrate on call</string>
-    <string name="pref_summary_mms_notification_vibrate_call">Allow vibrate while on a call</string>
-
     <!-- QUICKMESSAGE -->
     <string name="pref_quickmessage">Quick reply</string>
 
@@ -150,4 +146,32 @@
     <!-- MMS push permission -->
     <string name="label_mms_push">MMS Push</string>
     <string name="desc_mms_push">Pushes MMS from outbox to the network</string>
+
+    <!-- Blacklist preferences -->
+    <string name="blacklist_title">Blacklist</string>
+    <string name="blacklist_summary_disabled">Disabled</string>
+    <string name="blacklist_summary">Incoming messages from phone numbers in the blacklist will be blocked</string>
+
+    <!-- Blacklist notifications -->
+    <string name="blacklist_notification">Blocked a message from %s</string>
+    <string name="blacklist_notification_private_number">Blocked a message from a private number</string>
+    <string name="blacklist_notification_list_private">Private</string>
+    <string name="blacklist_notification_unknown_number">Blocked a message from unknown number %s</string>
+    <string name="blacklist_notification_multiple"><xliff:g id="count">%d</xliff:g> messages were blocked</string>
+    <string name="unblock_number">Unblock</string>
+
+    <!-- Blacklist management -->
+    <string name="add_to_blacklist">Add to blacklist</string>
+    <string name="add_to_blacklist_message">Future messages from %s will be blocked</string>
+
+    <!-- Generic blacklist handling -->
+    <string name="alert_dialog_yes">Yes</string>
+    <string name="alert_dialog_no">No</string>
+
+    <!-- Toast when storage is full -->
+    <string name="storage_is_full">The messaging database is full. Please delete some conversations.</string>
+
+    <!-- Context menu item on an failed message for resending -->
+    <string name="menu_resend">Resend</string>
+
 </resources>

@@ -171,7 +171,7 @@ public class MessagingNotification {
 
     private static OnDeletedReceiver sNotificationDeletedReceiver = new OnDeletedReceiver();
     private static Intent sNotificationOnDeleteIntent;
-    private static Handler sToastHandler = new Handler();
+    private static Handler sHandler = new Handler();
     private static PduPersister sPduPersister;
     private static final int MAX_BITMAP_DIMEN_DP = 360;
     private static float sScreenDensity;
@@ -316,9 +316,17 @@ public class MessagingNotification {
             return;
         }
         Uri ringtoneUri = Uri.parse(ringtoneStr);
-        NotificationPlayer player = new NotificationPlayer(LogTag.APP);
+        final NotificationPlayer player = new NotificationPlayer(LogTag.APP);
         player.play(context, ringtoneUri, false, AudioManager.STREAM_NOTIFICATION,
                 IN_CONVERSATION_NOTIFICATION_VOLUME);
+
+        // Stop the sound after five seconds to handle continuous ringtones
+        sHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                player.stop();
+            }
+        }, 5000);
     }
 
     /**
@@ -799,7 +807,7 @@ public class MessagingNotification {
             Bitmap attachmentBitmap,
             Contact contact,
             int attachmentType) {
-        if (MmsConfig.isSuppressedSprintVVM(address)) {
+        if (AddressUtils.isSuppressedSprintVVM(context, address)) {
             return null;
         }
         Intent clickIntent = ComposeMessageActivity.createIntent(context, threadId);
@@ -839,7 +847,7 @@ public class MessagingNotification {
             return;
         }
 
-        sToastHandler.post(new Runnable() {
+        sHandler.post(new Runnable() {
             @Override
             public void run() {
                 Toast.makeText(context, message, (int)timeMillis).show();
@@ -968,9 +976,6 @@ public class MessagingNotification {
                                                              // from a favorite.
 
         int defaults = 0;
-        final TelephonyManager tm =
-                (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
-        boolean callIsActive = tm.getCallState() != TelephonyManager.CALL_STATE_IDLE;
 
         if (isNew) {
             boolean vibrate = false;
@@ -988,11 +993,6 @@ public class MessagingNotification {
                 String vibrateWhen =
                         sp.getString(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_WHEN, null);
                 vibrate = "always".equals(vibrateWhen);
-            }
-
-            if (vibrate && callIsActive) {
-                // only vibrate during calls if allowed by the user
-                vibrate = sp.getBoolean(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_CALL, true);
             }
 
             if (vibrate) {
@@ -1182,6 +1182,9 @@ public class MessagingNotification {
             // Trigger the QuickMessage pop-up activity if enabled
             // But don't show the QuickMessage if the user is in a call or the phone is ringing
             if (qmPopupEnabled && qmIntent != null) {
+                final TelephonyManager tm =
+                        (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+                boolean callIsActive = tm.getCallState() != TelephonyManager.CALL_STATE_IDLE;
                 if (!callIsActive && !ConversationList.mIsRunning && !ComposeMessageActivity.mIsRunning) {
                     // Show the popup
                     context.startActivity(qmIntent);

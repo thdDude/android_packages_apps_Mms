@@ -135,6 +135,7 @@ import android.widget.LinearLayout;
 
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.internal.telephony.TelephonyProperties;
+import com.android.internal.telephony.util.BlacklistUtils;
 import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
@@ -259,14 +260,14 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_GROUP_PARTICIPANTS    = 32;
     private static final int MENU_INSERT_EMOJI          = 33;
     private static final int MENU_ADD_TEMPLATE          = 34;
+    private static final int MENU_ADD_TO_BLACKLIST      = 35;
+    private static final int MENU_ADD_TO_CALENDAR       = 36;
+    private static final int MENU_RESEND                = 37;
 
     private static final int DIALOG_TEMPLATE_SELECT     = 1;
     private static final int DIALOG_TEMPLATE_NOT_AVAILABLE = 2;
     private static final int LOAD_TEMPLATE_BY_ID        = 0;
     private static final int LOAD_TEMPLATES             = 1;
-
-    // Add SMS to calendar reminder
-    private static final int MENU_ADD_TO_CALENDAR       = 35;
 
     private static final int RECIPIENTS_MAX_LENGTH = 312;
 
@@ -278,6 +279,9 @@ public class ComposeMessageActivity extends Activity
     private static final int CHARS_REMAINING_BEFORE_COUNTER_SHOWN = 10;
 
     private static final long NO_DATE_FOR_DIALOG = -1L;
+
+    private static final String KEY_EXIT_ON_SENT = "exit_on_sent";
+    private static final String KEY_FORWARDED_MESSAGE = "forwarded_message";
 
     private static final String EXIT_ECM_RESULT = "exit_ecm_result";
 
@@ -307,8 +311,10 @@ public class ComposeMessageActivity extends Activity
 
     private Conversation mConversation;     // Conversation we are working in
 
-    private boolean mExitOnSent;            // Should we finish() after sending a message?
-                                            // TODO: mExitOnSent is obsolete -- remove
+    // When mSendDiscreetMode is true, this activity only allows a user to type in and send
+    // a single sms, send the message, and then exits. The message history and menus are hidden.
+    private boolean mSendDiscreetMode;
+    private boolean mForwardMessageMode;
 
     private View mTopPanel;                 // View containing the recipient and subject editors
     private View mBottomPanel;              // View containing the text editor, send button, ec.
@@ -387,6 +393,9 @@ public class ComposeMessageActivity extends Activity
                                             // If the value >= 0, then we jump to that line. If the
                                             // value is maxint, then we jump to the end.
     private long mLastMessageId;
+
+    //record the resend sms recipient when the sms send to more than one recipient
+    private String mResendSmsRecipient;
 
     // Add SMS to calendar reminder
     private static final String CALENDAR_EVENT_TYPE = "vnd.android.cursor.item/event";
@@ -1153,6 +1162,12 @@ public class ComposeMessageActivity extends Activity
                         .setOnMenuItemClickListener(l);
             }
 
+            //only failed send message have resend function
+            if (msgItem.isFailedMessage()) {
+                    menu.add(0, MENU_RESEND, 0, R.string.menu_resend)
+                            .setOnMenuItemClickListener(l);
+            }
+
             if (msgItem.isMms()) {
                 switch (msgItem.mBoxId) {
                     case Mms.MESSAGE_BOX_INBOX:
@@ -1339,8 +1354,8 @@ public class ComposeMessageActivity extends Activity
                 // on the UI thread.
                 Intent intent = createIntent(ComposeMessageActivity.this, 0);
 
-                intent.putExtra("exit_on_sent", true);
-                intent.putExtra("forwarded_message", true);
+                intent.putExtra(KEY_EXIT_ON_SENT, true);
+                intent.putExtra(KEY_FORWARDED_MESSAGE, true);
                 if (mTempThreadId > 0) {
                     intent.putExtra(THREAD_ID, mTempThreadId);
                 }
@@ -1367,6 +1382,35 @@ public class ComposeMessageActivity extends Activity
                 startActivity(intent);
             }
         }, R.string.building_slideshow_title);
+    }
+
+    private void resendMessage(MessageItem msgItem) {
+        if (msgItem.isMms()) {
+            //if it is mms, we delete current mms and use current mms
+            //uri to create new working message object.
+            WorkingMessage newWorkingMessage = WorkingMessage.load(this, msgItem.mMessageUri);
+            if (newWorkingMessage == null)
+                return;
+
+            // Discard the current message in progress.
+            mWorkingMessage.discard();
+
+            mWorkingMessage = newWorkingMessage;
+            mWorkingMessage.setConversation(mConversation);
+            mWorkingMessage.setSubject(msgItem.mSubject, false);
+        } else {
+            if (getRecipients().size() > 1) {
+                //if the number is more than one when send sms, there will show serveral msg items
+                //the recipient of msg item is not equal with recipients of conversation
+                //so we should record the recipient of this msg item.
+                mWorkingMessage.setResendMultiRecipients(true);
+                mResendSmsRecipient = msgItem.mAddress;
+            }
+
+            editSmsMessageItem(msgItem);
+        }
+
+        sendMessage(true);
     }
 
     /**
@@ -1397,6 +1441,10 @@ public class ComposeMessageActivity extends Activity
 
                 case MENU_FORWARD_MESSAGE:
                     forwardMessage(mMsgItem);
+                    return true;
+
+                case MENU_RESEND:
+                    resendMessage(mMsgItem);
                     return true;
 
                 case MENU_VIEW_SLIDESHOW:
@@ -1706,6 +1754,9 @@ public class ComposeMessageActivity extends Activity
                 if (isDrm) {
                     extension += DrmUtils.getConvertExtension(type);
                 }
+                // Remove leading periods. The gallery ignores files starting with a period.
+                fileName = fileName.replaceAll("^.", "");
+
                 File file = getUniqueDestination(dir + fileName, extension);
 
                 // make sure the path is valid and directories created for this file.
@@ -2365,7 +2416,7 @@ public class ComposeMessageActivity extends Activity
      * @param debugFlag shows where this is being called from
      */
     private void loadMessagesAndDraft(int debugFlag) {
-        if (!mMessagesAndDraftLoaded) {
+        if (!mSendDiscreetMode && !mMessagesAndDraftLoaded) {
             if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                 Log.v(TAG, "### CMA.loadMessagesAndDraft: flag=" + debugFlag);
             }
@@ -2407,8 +2458,11 @@ public class ComposeMessageActivity extends Activity
 
         mWorkingMessage.writeStateToBundle(outState);
 
-        if (mExitOnSent) {
-            outState.putBoolean("exit_on_sent", mExitOnSent);
+        if (mSendDiscreetMode) {
+            outState.putBoolean(KEY_EXIT_ON_SENT, mSendDiscreetMode);
+        }
+        if (mForwardMessageMode) {
+            outState.putBoolean(KEY_FORWARDED_MESSAGE, mForwardMessageMode);
         }
     }
 
@@ -2837,6 +2891,12 @@ public class ComposeMessageActivity extends Activity
 
         menu.clear();
 
+        if (mSendDiscreetMode && !mForwardMessageMode) {
+            // When we're in send-a-single-message mode from the lock screen, don't show
+            // any menus.
+            return true;
+        }
+
         if (isRecipientCallable()) {
             MenuItem item = menu.add(0, MENU_CALL_RECIPIENT, 0, R.string.menu_call)
                 .setIcon(R.drawable.ic_menu_call)
@@ -2900,6 +2960,13 @@ public class ComposeMessageActivity extends Activity
         }
 
         buildAddAddressToContactMenuItem(menu);
+
+        // Add to Blacklist item (if enabled)
+        if (BlacklistUtils.isBlacklistEnabled(this)) {
+            menu.add(0, MENU_ADD_TO_BLACKLIST, 0, R.string.add_to_blacklist)
+                    .setIcon(R.drawable.ic_block_message_holo_dark)
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
+        }
 
         menu.add(0, MENU_PREFERENCES, 0, R.string.menu_preferences).setIcon(
                 android.R.drawable.ic_menu_preferences);
@@ -3015,9 +3082,47 @@ public class ComposeMessageActivity extends Activity
             case MENU_ADD_TEMPLATE:
                 startLoadingTemplates();
                 break;
+            case MENU_ADD_TO_BLACKLIST:
+                confirmAddBlacklist();
+                break;
         }
 
         return true;
+    }
+
+    /**
+     *  Pop up a dialog confirming adding the current number to the blacklist
+     */
+    private void confirmAddBlacklist() {
+        //TODO: get the sender number
+        final String number = getSenderNumber();
+        if (TextUtils.isEmpty(number)) {
+            return;
+        }
+
+        // Show dialog
+        final String message = getString(R.string.add_to_blacklist_message, number);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.add_to_blacklist)
+                .setMessage(message)
+                .setPositiveButton(R.string.alert_dialog_yes, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        BlacklistUtils.addOrUpdate(getApplicationContext(), number,
+                                BlacklistUtils.BLOCK_MESSAGES, BlacklistUtils.BLOCK_MESSAGES);
+                    }
+                })
+                .setNegativeButton(R.string.alert_dialog_no, null)
+                .show();
+    }
+
+    private String getSenderNumber() {
+        if (isRecipientCallable()) {
+            return getRecipients().get(0).getNumber().toString();
+        }
+
+        // Not a callable sender
+        return null;
     }
 
     private void confirmDeleteThread(long threadId) {
@@ -3446,7 +3551,7 @@ public class ComposeMessageActivity extends Activity
 
         // If this is a forwarded message, it will have an Intent extra
         // indicating so.  If not, bail out.
-        if (intent.getBooleanExtra("forwarded_message", false) == false) {
+        if (!mForwardMessageMode) {
             return false;
         }
 
@@ -3818,6 +3923,9 @@ public class ComposeMessageActivity extends Activity
     }
 
     private void startMsgListQuery(int token) {
+        if (mSendDiscreetMode) {
+            return;
+        }
         Uri conversationUri = mConversation.getUri();
 
         if (conversationUri == null) {
@@ -3862,7 +3970,7 @@ public class ComposeMessageActivity extends Activity
         mMsgListAdapter.setMsgListItemHandler(mMessageListItemHandler);
         mMsgListView.setAdapter(mMsgListAdapter);
         mMsgListView.setItemsCanFocus(false);
-        mMsgListView.setVisibility(View.VISIBLE);
+        mMsgListView.setVisibility(mSendDiscreetMode ? View.INVISIBLE : View.VISIBLE);
         mMsgListView.setOnCreateContextMenuListener(mMsgListMenuCreateListener);
         mMsgListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -3999,7 +4107,13 @@ public class ComposeMessageActivity extends Activity
 
             // strip unicode chars before sending (if applicable)
             mWorkingMessage.setText(stripUnicodeIfRequested(mWorkingMessage.getText()));
-            mWorkingMessage.send(mDebugRecipients);
+
+            if (mWorkingMessage.getResendMultiRecipients()) {
+                //if resend sms recipient is more than one, use mResendSmsRecipient
+                mWorkingMessage.send(mResendSmsRecipient);
+            } else {
+                mWorkingMessage.send(mDebugRecipients);
+            }
 
             mSentMessage = true;
             mSendingMessage = true;
@@ -4008,7 +4122,7 @@ public class ComposeMessageActivity extends Activity
             mScrollOnSend = true;   // in the next onQueryComplete, scroll the list to the end.
         }
         // But bail out if we are supposed to exit after the message is sent.
-        if (mExitOnSent) {
+        if (mSendDiscreetMode) {
             finish();
         }
     }
@@ -4115,7 +4229,12 @@ public class ComposeMessageActivity extends Activity
                     ContactList.getByNumbers(recipients,
                             false /* don't block */, true /* replace number */), false);
             addRecipientsListeners();
-            mExitOnSent = bundle.getBoolean("exit_on_sent", false);
+            mSendDiscreetMode = bundle.getBoolean(KEY_EXIT_ON_SENT, false);
+            mForwardMessageMode = bundle.getBoolean(KEY_FORWARDED_MESSAGE, false);
+
+            if (mSendDiscreetMode) {
+                mMsgListView.setVisibility(View.INVISIBLE);
+            }
             mWorkingMessage.readStateFromBundle(bundle);
 
             return;
@@ -4149,7 +4268,11 @@ public class ComposeMessageActivity extends Activity
         addRecipientsListeners();
         updateThreadIdIfRunning();
 
-        mExitOnSent = intent.getBooleanExtra("exit_on_sent", false);
+        mSendDiscreetMode = intent.getBooleanExtra(KEY_EXIT_ON_SENT, false);
+        mForwardMessageMode = intent.getBooleanExtra(KEY_FORWARDED_MESSAGE, false);
+        if (mSendDiscreetMode) {
+            mMsgListView.setVisibility(View.INVISIBLE);
+        }
         if (intent.hasExtra("sms_body")) {
             mWorkingMessage.setText(intent.getStringExtra("sms_body"));
         }
