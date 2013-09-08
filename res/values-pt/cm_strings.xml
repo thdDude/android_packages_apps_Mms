@@ -106,7 +106,6 @@
     <string name="alert_dialog_no">Não</string>
     <string name="storage_is_full">O banco de dados de mensagem está cheio. Favor apagar algumas conversas.</string>
     <string name="menu_resend">Reenviar</string>
-</resources>
     <string name="select_recipients">Selecionar destinatários</string>
     <string name="groups_header">Grupos</string>
     <string name="no_recipients">Nenhum contato encontrado</string>
