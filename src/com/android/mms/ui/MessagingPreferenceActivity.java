@@ -115,10 +115,11 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     public static final String QM_LOCKSCREEN_ENABLED     = "pref_key_qm_lockscreen";
     public static final String QM_CLOSE_ALL_ENABLED      = "pref_key_close_all";
 
-    private static final String DIRECT_CALL_PREF = "direct_call_pref";
 
     // Blacklist
     public static final String BLACKLIST                 = "pref_blacklist";
+
+    private static final String DIRECT_CALL_PREF = "direct_call_pref";
 
     // Menu entries
     private static final int MENU_RESTORE_DEFAULTS    = 1;
@@ -156,10 +157,11 @@ public class MessagingPreferenceActivity extends PreferenceActivity
     private CheckBoxPreference mEnableQmLockscreenPref;
     private CheckBoxPreference mEnableQmCloseAllPref;
 
-    private CheckBoxPreference mDirectCall;
 
     // Blacklist
     private PreferenceScreen mBlacklist;
+
+    private CheckBoxPreference mDirectCall;
 
     @Override
     protected void onCreate(Bundle icicle) {
