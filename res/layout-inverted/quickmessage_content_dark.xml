@@ -140,7 +140,7 @@
             android:textColor="@android:color/white"
             android:textColorHint="@android:color/secondary_text_light"
             android:textCursorDrawable = "@null"
-            android:maxLines="3"
+            android:maxLines="@integer/qm_message_response_max_lines"
             android:imeOptions="actionSend|flagNoEnterAction"
             android:maxLength="2000" />
 
